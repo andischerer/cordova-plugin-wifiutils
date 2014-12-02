@@ -99,6 +99,7 @@ public class WifiUtils extends CordovaPlugin {
         }
         if (activeInterface != null) {
             adapterData.put("activeAdaper", activeInterface.getDisplayName());
+            adapterData.put("connected", isWifiConnected() || isWifiApEnabled());
             adapterData.put("apEnabled", isWifiApEnabled());
             adapterData.put("wifiConnected", isWifiConnected());
             adapterData.put("BSSID", wifiInfo.getBSSID());
