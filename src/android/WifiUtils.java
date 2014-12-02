@@ -108,7 +108,7 @@ public class WifiUtils extends CordovaPlugin {
             adapterData.put("RSSI", wifiInfo.getRssi());
             adapterData.put("LinkSpeed", wifiInfo.getLinkSpeed());
 
-            JSONArray adapterAdresses = new JSONArray();
+            JSONArray adapterAddresses = new JSONArray();
 
             for (InterfaceAddress addr: activeInterface.getInterfaceAddresses()) {
                 if (!addr.getAddress().isLoopbackAddress()) {
@@ -138,13 +138,13 @@ public class WifiUtils extends CordovaPlugin {
                             }
                         }
 
-                        adapterAdresses.put(addressData);
+                        adapterAddresses.put(addressData);
                     } catch (UnknownHostException e) {
                         Log.e(TAG, e.getMessage());
                     }
                 }
             }
-            adapterData.put("adresses", adapterAdresses);
+            adapterData.put("addresses", adapterAddresses);
         }
 
         JSONArray available = new JSONArray();
