@@ -9,7 +9,9 @@ import android.net.wifi.WifiManager;
 import android.util.Log;
 
 import org.apache.cordova.CallbackContext;
+import org.apache.cordova.CordovaInterface;
 import org.apache.cordova.CordovaPlugin;
+import org.apache.cordova.CordovaWebView;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -25,20 +27,33 @@ import java.util.Enumeration;
 public class WifiUtils extends CordovaPlugin {
     private static final String TAG = WifiUtils.class.getSimpleName();
 
-    private WifiManager mWifiManager;
+    private WifiManager wifiManager;
     private NetworkInfo wifiConnection;
     private WifiInfo wifiInfo;
+    private ConnectivityManager connManager;
 
+//    BroadcastReceiver receiver;
 
     private static enum WIFI_AP_STATE {
-        WIFI_AP_STATE_DISABLING, WIFI_AP_STATE_DISABLED, WIFI_AP_STATE_ENABLING, WIFI_AP_STATE_ENABLED, WIFI_AP_STATE_FAILED
+        WIFI_AP_STATE_DISABLING,
+        WIFI_AP_STATE_DISABLED,
+        WIFI_AP_STATE_ENABLING,
+        WIFI_AP_STATE_ENABLED,
+        WIFI_AP_STATE_FAILED
     }
 
+    public void initialize(CordovaInterface cordova, CordovaWebView webView) {
+        super.initialize(cordova, webView);
+        Log.d(TAG, "initialize");
+        wifiManager = (WifiManager) cordova.getActivity().getSystemService(Context.WIFI_SERVICE);
+        connManager = (ConnectivityManager) cordova.getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+    }
+    
     /*the following method is for getting the wifi hotspot state*/
     private WIFI_AP_STATE getWifiApState() {
         try {
-            Method method = mWifiManager.getClass().getMethod("getWifiApState");
-            int tmp = ((Integer) method.invoke(mWifiManager));
+            Method method = wifiManager.getClass().getMethod("getWifiApState");
+            int tmp = ((Integer) method.invoke(wifiManager));
             // Fix for Android 4
             if (tmp > 10) {
                 tmp = tmp - 10;
@@ -80,14 +95,24 @@ public class WifiUtils extends CordovaPlugin {
         return InetAddress.getByAddress(bytes);
     }
 
-    private JSONObject getAdapterInfos(Context context) throws SocketException, JSONException {
+    private JSONObject getAdapterInfos() throws SocketException, JSONException {
         JSONObject adapterData = new JSONObject();
+
+        adapterData.put("connected", isWifiConnected() || isWifiApEnabled());
+        adapterData.put("apEnabled", isWifiApEnabled());
+        adapterData.put("wifiConnected", isWifiConnected());
+        adapterData.put("BSSID", wifiInfo.getBSSID());
+        adapterData.put("HiddenSSID", wifiInfo.getHiddenSSID());
+        adapterData.put("SSID", wifiInfo.getSSID());
+        adapterData.put("MacAddress", wifiInfo.getMacAddress());
+        adapterData.put("RSSI", wifiInfo.getRssi());
+        adapterData.put("LinkSpeed", wifiInfo.getLinkSpeed());
 
         NetworkInterface activeInterface = null;
         for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements();){
             NetworkInterface intf = en.nextElement();
-            Log.d(TAG, intf.getDisplayName());
             if (intf.isUp() && intf.supportsMulticast() && intf.getInterfaceAddresses().size() > 0 && !intf.isLoopback() && !intf.isVirtual() && !intf.isPointToPoint()){
+                Log.d(TAG, intf.getDisplayName());
                 if (activeInterface == null){
                     activeInterface = intf;
                 }else{
@@ -97,17 +122,9 @@ public class WifiUtils extends CordovaPlugin {
                 }
             }
         }
+
         if (activeInterface != null) {
             adapterData.put("activeAdaper", activeInterface.getDisplayName());
-            adapterData.put("connected", isWifiConnected() || isWifiApEnabled());
-            adapterData.put("apEnabled", isWifiApEnabled());
-            adapterData.put("wifiConnected", isWifiConnected());
-            adapterData.put("BSSID", wifiInfo.getBSSID());
-            adapterData.put("HiddenSSID", wifiInfo.getHiddenSSID());
-            adapterData.put("SSID", wifiInfo.getSSID());
-            adapterData.put("MacAddress", wifiInfo.getMacAddress());
-            adapterData.put("RSSI", wifiInfo.getRssi());
-            adapterData.put("LinkSpeed", wifiInfo.getLinkSpeed());
 
             JSONArray adapterAddresses = new JSONArray();
 
@@ -149,7 +166,7 @@ public class WifiUtils extends CordovaPlugin {
         }
 
         JSONArray available = new JSONArray();
-        for (ScanResult scanResult : mWifiManager.getScanResults()) {
+        for (ScanResult scanResult : wifiManager.getScanResults()) {
             JSONObject ap = new JSONObject();
             ap.put("BSSID", scanResult.BSSID);
             ap.put("SSID", scanResult.SSID);
@@ -166,20 +183,15 @@ public class WifiUtils extends CordovaPlugin {
     @Override
     public boolean execute(String action, JSONArray data, final CallbackContext callbackContext) throws JSONException {
 
-        final Context context = cordova.getActivity().getApplicationContext();
-
-        if (mWifiManager == null) {
-            mWifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
-            ConnectivityManager connManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-            wifiConnection = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
-            wifiInfo = mWifiManager.getConnectionInfo();
-        }
+        wifiConnection = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+        wifiInfo = wifiManager.getConnectionInfo();
 
         if (action.equals("getInfos")) {
+            Log.d(TAG, "getInfos");
             cordova.getThreadPool().execute(new Runnable() {
                 public void run() {
                     try {
-                        callbackContext.success(getAdapterInfos(context));
+                        callbackContext.success(getAdapterInfos());
                     } catch (Exception e) {
                         Log.d(TAG, "send exception:" + e.toString());
                         callbackContext.error("Exception: " + e.toString());
