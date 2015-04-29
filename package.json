@@ -1,0 +1,27 @@
+{
+  "name": "cordova-plugin-wifiutils",
+  "version": "0.1.1",
+  "description": "Cordova plugin for getting Network interface Infos.",
+  "cordova": {
+    "id": "cordova-plugin-wifiutils",
+    "platforms": [
+      "android"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andischerer/cordova-plugin-wifiutils.git"
+  },
+  "keywords": [
+    "ip-address",
+    "interface",
+    "ecosystem:cordova",
+    "cordova-android"
+  ],
+  "author": "Andreas Scherer",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/andischerer/cordova-plugin-wifiutils/issues"
+  },
+  "homepage": "https://github.com/andischerer/cordova-plugin-wifiutils#readme"
+}
