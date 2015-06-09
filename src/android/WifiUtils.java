@@ -16,6 +16,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InterfaceAddress;
@@ -23,6 +25,7 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Enumeration;
+import java.util.List;
 
 public class WifiUtils extends CordovaPlugin {
     private static final String TAG = WifiUtils.class.getSimpleName();
@@ -32,8 +35,6 @@ public class WifiUtils extends CordovaPlugin {
     private WifiInfo wifiInfo;
     private ConnectivityManager connManager;
 
-//    BroadcastReceiver receiver;
-
     private static enum WIFI_AP_STATE {
         WIFI_AP_STATE_DISABLING,
         WIFI_AP_STATE_DISABLED,
@@ -42,13 +43,32 @@ public class WifiUtils extends CordovaPlugin {
         WIFI_AP_STATE_FAILED
     }
 
+    private JSONObject getErrorFromException(Exception e) {
+        JSONObject error = new JSONObject();
+
+        // get stacktace
+        StringWriter writer = new StringWriter();
+        PrintWriter printWriter = new PrintWriter( writer );
+        e.printStackTrace(printWriter);
+        printWriter.flush();
+
+        try {
+            error.put("error", e.toString());
+            error.put("stacktrace", writer.toString());
+        } catch (JSONException e1) {
+            Log.d(TAG, "JSON-Error Object could not be created.", e);
+        }
+
+        return error;
+    }
+
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
         super.initialize(cordova, webView);
         Log.d(TAG, "initialize");
         wifiManager = (WifiManager) cordova.getActivity().getSystemService(Context.WIFI_SERVICE);
         connManager = (ConnectivityManager) cordova.getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
     }
-    
+
     /*the following method is for getting the wifi hotspot state*/
     private WIFI_AP_STATE getWifiApState() {
         try {
@@ -95,7 +115,7 @@ public class WifiUtils extends CordovaPlugin {
         return InetAddress.getByAddress(bytes);
     }
 
-    private JSONObject getAdapterInfos() throws SocketException, JSONException {
+    private JSONObject getAdapterInfos() throws SocketException, JSONException, UnknownHostException {
         JSONObject adapterData = new JSONObject();
 
         adapterData.put("connected", isWifiConnected() || isWifiApEnabled());
@@ -130,52 +150,51 @@ public class WifiUtils extends CordovaPlugin {
 
             for (InterfaceAddress addr: activeInterface.getInterfaceAddresses()) {
                 if (!addr.getAddress().isLoopbackAddress()) {
-                    try {
-                        JSONObject addressData = new JSONObject();
+                    JSONObject addressData = new JSONObject();
 
-                        boolean isIpV4 = (addr.getAddress().getAddress().length == 4);
-                        addressData.put("addressType", (isIpV4) ? "ipv4" : "ipv6");
+                    boolean isIpV4 = (addr.getAddress().getAddress().length == 4);
+                    addressData.put("addressType", (isIpV4) ? "ipv4" : "ipv6");
 
-                        // Ip-Address
-                        InetAddress ipAddress = addr.getAddress();
-                        addressData.put("ipAddress", ipAddress.getHostAddress());
+                    // Ip-Address
+                    InetAddress ipAddress = addr.getAddress();
+                    addressData.put("ipAddress", ipAddress.getHostAddress());
 
-                        if (isIpV4) {
-                            // Subnet-Mask
-                            InetAddress subnetMask = getSubnetMask(addr.getNetworkPrefixLength());
-                            addressData.put("subnetMask", subnetMask.getHostAddress());
+                    if (isIpV4) {
+                        // Subnet-Mask
+                        InetAddress subnetMask = getSubnetMask(addr.getNetworkPrefixLength());
+                        addressData.put("subnetMask", subnetMask.getHostAddress());
 
-                            // Network-ID
-                            InetAddress networkId = getNetIdAddress(ipAddress.getAddress(), subnetMask.getAddress());
-                            addressData.put("networkId", networkId.getHostAddress());
+                        // Network-ID
+                        InetAddress networkId = getNetIdAddress(ipAddress.getAddress(), subnetMask.getAddress());
+                        addressData.put("networkId", networkId.getHostAddress());
 
-                            // Broadcast-Address
-                            InetAddress bcast = addr.getBroadcast();
-                            if (bcast != null) {
-                                addressData.put("broadcastAddress", bcast.getHostAddress());
-                            }
+                        // Broadcast-Address
+                        InetAddress bcast = addr.getBroadcast();
+                        if (bcast != null) {
+                            addressData.put("broadcastAddress", bcast.getHostAddress());
                         }
-
-                        adapterAddresses.put(addressData);
-                    } catch (UnknownHostException e) {
-                        Log.e(TAG, e.getMessage());
                     }
+
+                    adapterAddresses.put(addressData);
                 }
             }
             adapterData.put("addresses", adapterAddresses);
         }
 
         JSONArray available = new JSONArray();
-        for (ScanResult scanResult : wifiManager.getScanResults()) {
-            JSONObject ap = new JSONObject();
-            ap.put("BSSID", scanResult.BSSID);
-            ap.put("SSID", scanResult.SSID);
-            ap.put("frequency", scanResult.frequency);
-            ap.put("level", scanResult.level);
-            ap.put("capabilities", scanResult.capabilities);
-            available.put(ap);
+        List<ScanResult> scanResults = wifiManager.getScanResults();
+        if (scanResults != null) {
+            for (ScanResult scanResult : scanResults) {
+                JSONObject ap = new JSONObject();
+                ap.put("BSSID", scanResult.BSSID);
+                ap.put("SSID", scanResult.SSID);
+                ap.put("frequency", scanResult.frequency);
+                ap.put("level", scanResult.level);
+                ap.put("capabilities", scanResult.capabilities);
+                available.put(ap);
+            }
+            adapterData.put("reachableWlans", available);
         }
-        adapterData.put("reachableWlans", available);
 
         return adapterData;
     }
@@ -193,8 +212,8 @@ public class WifiUtils extends CordovaPlugin {
                     try {
                         callbackContext.success(getAdapterInfos());
                     } catch (Exception e) {
-                        Log.d(TAG, "send exception:" + e.toString());
-                        callbackContext.error("Exception: " + e.toString());
+                        Log.e(TAG, e.toString(), e);
+                        callbackContext.error(getErrorFromException(e));
                     }
                 }
             });
