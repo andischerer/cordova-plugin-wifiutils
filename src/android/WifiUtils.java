@@ -32,7 +32,6 @@ public class WifiUtils extends CordovaPlugin {
 
     private WifiManager wifiManager;
     private NetworkInfo wifiConnection;
-    private WifiInfo wifiInfo;
     private ConnectivityManager connManager;
 
     private static enum WIFI_AP_STATE {
@@ -118,6 +117,9 @@ public class WifiUtils extends CordovaPlugin {
     private JSONObject getAdapterInfos() throws SocketException, JSONException, UnknownHostException {
         JSONObject adapterData = new JSONObject();
 
+        wifiConnection = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+
         adapterData.put("connected", isWifiConnected() || isWifiApEnabled());
         adapterData.put("apEnabled", isWifiApEnabled());
         adapterData.put("wifiConnected", isWifiConnected());
@@ -201,9 +203,6 @@ public class WifiUtils extends CordovaPlugin {
 
     @Override
     public boolean execute(String action, JSONArray data, final CallbackContext callbackContext) throws JSONException {
-
-        wifiConnection = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
-        wifiInfo = wifiManager.getConnectionInfo();
 
         if (action.equals("getInfos")) {
             Log.d(TAG, "getInfos");
