@@ -183,6 +183,13 @@ public class WifiUtils extends CordovaPlugin {
             adapterData.put("addresses", adapterAddresses);
         }
 
+        // removing reachableWlans cause the need for Android Permission ACCESS_COARSE_LOCATION or ACCESS_FINE_LOCATION
+        // It is neccessary to activate location services to get a list of wifi networks around. If not activated,  
+        // wifiManager.getScanResults returns an empty list or a SecurityException if your on Android 6.0.0
+        // see https://code.google.com/p/android/issues/detail?id=185370
+        // I dont want to enforce GPS permissions for this plugin.
+        // Maybe i will add a seperate action ...
+        /*
         JSONArray available = new JSONArray();
         List<ScanResult> scanResults = wifiManager.getScanResults();
         if (scanResults != null) {
@@ -197,6 +204,7 @@ public class WifiUtils extends CordovaPlugin {
             }
             adapterData.put("reachableWlans", available);
         }
+        */
 
         return adapterData;
     }
