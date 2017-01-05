@@ -3,7 +3,7 @@ package org.apache.cordova.wifiutils;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.net.wifi.ScanResult;
+import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.util.Log;
@@ -25,13 +25,11 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Enumeration;
-import java.util.List;
 
 public class WifiUtils extends CordovaPlugin {
     private static final String TAG = WifiUtils.class.getSimpleName();
 
     private WifiManager wifiManager;
-    private NetworkInfo wifiConnection;
     private ConnectivityManager connManager;
 
     private static enum WIFI_AP_STATE {
@@ -94,10 +92,6 @@ public class WifiUtils extends CordovaPlugin {
         return (getWifiApState() == WIFI_AP_STATE.WIFI_AP_STATE_ENABLED);
     }
 
-    private boolean isWifiConnected() {
-        return (wifiConnection != null && wifiConnection.isConnected());
-    }
-
     private InetAddress getNetIdAddress(byte[] ipAddress, byte[] subnetMask) throws UnknownHostException {
         byte[] netIdBytes = new byte[4];
         if (ipAddress.length == subnetMask.length) {
@@ -117,12 +111,23 @@ public class WifiUtils extends CordovaPlugin {
     private JSONObject getAdapterInfos() throws SocketException, JSONException, UnknownHostException {
         JSONObject adapterData = new JSONObject();
 
-        wifiConnection = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+        boolean isWifiConnected = false;
+        NetworkInfo activeNetworkInfo = connManager.getActiveNetworkInfo();
+        if (activeNetworkInfo != null && activeNetworkInfo.getType() == ConnectivityManager.TYPE_WIFI && activeNetworkInfo.isConnected()) {
+            isWifiConnected = true;
+        }
+
+        boolean isWifiApEnabled = isWifiApEnabled();
+
         WifiInfo wifiInfo = wifiManager.getConnectionInfo();
 
-        adapterData.put("connected", isWifiConnected() || isWifiApEnabled());
-        adapterData.put("apEnabled", isWifiApEnabled());
-        adapterData.put("wifiConnected", isWifiConnected());
+        SupplicantState supplicantState = wifiInfo.getSupplicantState();
+
+        adapterData.put("connected", isWifiConnected || isWifiApEnabled);
+        adapterData.put("apEnabled", isWifiApEnabled);
+        adapterData.put("wifiConnected", isWifiConnected);
+        adapterData.put("supplicantState", supplicantState.toString());
+
         adapterData.put("BSSID", wifiInfo.getBSSID());
         adapterData.put("HiddenSSID", wifiInfo.getHiddenSSID());
         adapterData.put("SSID", wifiInfo.getSSID());

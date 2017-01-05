@@ -1,10 +1,9 @@
 var exec = cordova.require('cordova/exec');
 
 module.exports = {
-    getInfos: function (callback) {
-        callback = callback || function () { };
-        exec(callback.bind(null), // success
-             callback.bind(null), // failure
+    getInfos: function (successCb, errorCb) {
+        exec(successCb, // success
+             errorCb, // failure
              'WifiUtils',
              'getInfos',
              []
