@@ -1,6 +1,6 @@
 {
   "name": "cordova-plugin-wifiutils",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Cordova plugin for getting Network interface Infos.",
   "cordova": {
     "id": "cordova-plugin-wifiutils",
