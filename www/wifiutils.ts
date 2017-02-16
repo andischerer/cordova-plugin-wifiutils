@@ -51,6 +51,20 @@ class WifiUtils {
   ): void {
     cordova.exec(successCallback, errorCallback, 'WifiUtils', 'getInfos', []);
   }
+
+  aquireWifiLock(
+    successCallback: () => void,
+    errorCallback: (error: string) => void
+  ): void {
+    cordova.exec(successCallback, errorCallback, 'WifiUtils', 'aquireWifiLock', []);
+  }
+
+  releaseWifiLock(
+    successCallback: () => void,
+    errorCallback: (error: string) => void
+  ): void {
+    cordova.exec(successCallback, errorCallback, 'WifiUtils', 'releaseWifiLock', []);
+  }
 }
 
 module.exports = new WifiUtils();

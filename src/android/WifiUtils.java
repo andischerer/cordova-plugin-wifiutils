@@ -37,15 +37,16 @@ public class WifiUtils extends CordovaPlugin {
 
     private static final String WIFI_AP_CHANGED_INTENT_FILTER = "android.net.wifi.WIFI_AP_STATE_CHANGED";
     private static final String EXTRA_WIFI_AP_STATE = "wifi_state";
-    public static final int WIFI_AP_STATE_DISABLING = 10;
-    public static final int WIFI_AP_STATE_DISABLED = 11;
-    public static final int WIFI_AP_STATE_ENABLING = 12;
-    public static final int WIFI_AP_STATE_ENABLED = 13;
-    public static final int WIFI_AP_STATE_FAILED = 14;
+    private static final int WIFI_AP_STATE_DISABLING = 10;
+    private static final int WIFI_AP_STATE_DISABLED = 11;
+    private static final int WIFI_AP_STATE_ENABLING = 12;
+    private static final int WIFI_AP_STATE_ENABLED = 13;
+    private static final int WIFI_AP_STATE_FAILED = 14;
 
     private static final String WIFI_CONNECTION_CHANGED_INTENT_FILTER = "android.net.wifi.STATE_CHANGE";
 
     private WifiManager wifiManager;
+    private WifiManager.WifiLock wifiLock;
     private ConnectivityManager connManager;
     private JSONObject adapterInfos;
     private WifiChangeListener wifiChangeListener;
@@ -117,7 +118,7 @@ public class WifiUtils extends CordovaPlugin {
         }
     };
 
-    public void notifyWifiChangeListener() {
+    private void notifyWifiChangeListener() {
         try {
             adapterInfos = getAdapterInfos();
             Log.d(TAG, adapterInfos.toString());
@@ -329,6 +330,22 @@ public class WifiUtils extends CordovaPlugin {
         return adapterData;
     }
 
+    private void aquireLock() {
+        if (wifiLock != null && wifiLock.isHeld()) {
+            return;
+        }
+        wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, TAG);
+    }
+
+    private void releaseLock() {
+        if (wifiLock != null) {
+            if (wifiLock.isHeld()){
+                wifiLock.release();
+            }
+            wifiLock = null;
+        }
+    }
+
     @Override
     public boolean execute(String action, JSONArray data, final CallbackContext callbackContext) throws JSONException {
 
@@ -347,6 +364,10 @@ public class WifiUtils extends CordovaPlugin {
                     }
                 }
             });
+        } else if (action.equals("aquireWifiLock")) {
+            aquireLock();
+        } else if (action.equals("releaseWifiLock")) {
+            releaseLock();
         } else {
             return false; // 'MethodNotFound'
         }

@@ -34,4 +34,6 @@ interface Address {
 declare class WifiUtils {
     init(successCallback: () => void, errorCallback: (error: string) => void): void;
     getInfos(successCallback: (wifiInfos: IWifiInfos) => void, errorCallback: (error: string) => void): void;
+    aquireWifiLock(successCallback: () => void, errorCallback: (error: string) => void): void;
+    releaseWifiLock(successCallback: () => void, errorCallback: (error: string) => void): void;
 }
