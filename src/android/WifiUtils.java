@@ -9,6 +9,9 @@ import android.net.NetworkInfo;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.os.Build;
+import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Log;
 
 import org.apache.cordova.CallbackContext;
@@ -227,12 +230,24 @@ public class WifiUtils extends CordovaPlugin {
         adapterData.put("connected", isWifiConnected || isWifiApEnabled);
         adapterData.put("apEnabled", isWifiApEnabled);
         adapterData.put("wifiConnected", isWifiConnected);
+        adapterData.put("wifiState", currentWifiStateText);
         adapterData.put("supplicantState", supplicantState.toString());
 
         adapterData.put("BSSID", wifiInfo.getBSSID());
         adapterData.put("HiddenSSID", wifiInfo.getHiddenSSID());
         adapterData.put("SSID", wifiInfo.getSSID());
         adapterData.put("MacAddress", wifiInfo.getMacAddress());
+
+        String androidHostname;
+        try {
+            Method getString = Build.class.getDeclaredMethod("getString", String.class);
+            getString.setAccessible(true);
+            androidHostname = getString.invoke(null, "net.hostname").toString();
+        } catch (Exception ex) {
+            androidHostname = "android-" + Settings.Secure.getString(cordova.getActivity().getApplicationContext().getContentResolver(), Settings.Secure.ANDROID_ID);
+        }
+
+        adapterData.put("AndroidHostname", androidHostname);
         adapterData.put("RSSI", wifiInfo.getRssi());
         adapterData.put("LinkSpeed", wifiInfo.getLinkSpeed());
 
