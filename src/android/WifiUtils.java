@@ -255,7 +255,6 @@ public class WifiUtils extends CordovaPlugin {
         for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements();){
             NetworkInterface intf = en.nextElement();
             if (intf.isUp() && intf.supportsMulticast() && intf.getInterfaceAddresses().size() > 0 && !intf.isLoopback() && !intf.isVirtual() && !intf.isPointToPoint()){
-                Log.d(TAG, intf.getDisplayName());
                 if (activeInterface == null){
                     activeInterface = intf;
                 }else{
@@ -305,7 +304,7 @@ public class WifiUtils extends CordovaPlugin {
         }
 
         // removing reachableWlans cause the need for Android Permission ACCESS_COARSE_LOCATION or ACCESS_FINE_LOCATION
-        // It is neccessary to activate location services to get a list of wifi networks around. If not activated,  
+        // It is neccessary to activate location services to get a list of wifi networks around. If not activated,
         // wifiManager.getScanResults returns an empty list or a SecurityException if your on Android 6.0.0
         // see https://code.google.com/p/android/issues/detail?id=185370
         // I dont want to enforce GPS permissions for this plugin.
@@ -333,8 +332,10 @@ public class WifiUtils extends CordovaPlugin {
     @Override
     public boolean execute(String action, JSONArray data, final CallbackContext callbackContext) throws JSONException {
 
-        if (action.equals("getInfos")) {
-            Log.d(TAG, "getInfos");
+        if (action.equals("init")) {
+            // trigger plugin initialization
+            callbackContext.success();
+        } else if (action.equals("getInfos")) {
             cordova.getThreadPool().execute(new Runnable() {
                 public void run() {
                     try {
