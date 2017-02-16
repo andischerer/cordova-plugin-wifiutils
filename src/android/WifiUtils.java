@@ -155,6 +155,7 @@ public class WifiUtils extends CordovaPlugin {
     public void onDestroy() {
         cordova.getActivity().getApplicationContext().unregisterReceiver(wifiConnectionChangedReceiver);
         cordova.getActivity().getApplicationContext().unregisterReceiver(wifiApChangedReceiver);
+        releaseLock();
     }
 
     private JSONObject getErrorFromException(Exception e) {
