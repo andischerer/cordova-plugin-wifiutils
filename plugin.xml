@@ -3,7 +3,7 @@
 <plugin xmlns="http://www.phonegap.com/ns/plugins/1.0"
     xmlns:android="http://schemas.android.com/apk/res/android"
     id="cordova-plugin-wifiutils"
-    version="0.3.0">
+    version="0.4.0">
     <name>Wifiutils Plugin</name>
     <description>Cordova-Plugin for getting network interface Infos.</description>
     <keywords>ip-address, interface</keywords>
