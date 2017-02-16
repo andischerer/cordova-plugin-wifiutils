@@ -42,14 +42,14 @@ class WifiUtils {
     successCallback: () => void,
     errorCallback: (error: string) => void
   ): void {
-    cordova.exec(successCallback, errorCallback, 'AsaLivestream', 'start', []);
+    cordova.exec(successCallback, errorCallback, 'WifiUtils', 'start', []);
   }
 
   getInfos(
     successCallback: (wifiInfos: IWifiInfos) => void,
     errorCallback: (error: string) => void
   ): void {
-    cordova.exec(successCallback, errorCallback, 'AsaLivestream', 'start', []);
+    cordova.exec(successCallback, errorCallback, 'WifiUtils', 'start', []);
   }
 }
 
