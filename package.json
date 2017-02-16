@@ -1,6 +1,6 @@
 {
   "name": "cordova-plugin-wifiutils",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Cordova plugin for getting Network interface Infos.",
   "scripts": {
     "build": "tsc"
