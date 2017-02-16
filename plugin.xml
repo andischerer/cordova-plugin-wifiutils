@@ -26,6 +26,7 @@
             <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
         </config-file>
        <source-file src="src/android/WifiUtils.java" target-dir="src/org/apache/cordova/wifiutils/" />
+       <source-file src="src/android/WifiChangeListener.java" target-dir="src/org/apache/cordova/wifiutils/" />
     </platform>
 
 </plugin>

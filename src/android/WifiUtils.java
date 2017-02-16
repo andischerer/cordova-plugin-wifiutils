@@ -1,6 +1,9 @@
 package org.apache.cordova.wifiutils;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.SupplicantState;
@@ -29,15 +32,125 @@ import java.util.Enumeration;
 public class WifiUtils extends CordovaPlugin {
     private static final String TAG = WifiUtils.class.getSimpleName();
 
+    private static final String WIFI_AP_CHANGED_INTENT_FILTER = "android.net.wifi.WIFI_AP_STATE_CHANGED";
+    private static final String EXTRA_WIFI_AP_STATE = "wifi_state";
+    public static final int WIFI_AP_STATE_DISABLING = 10;
+    public static final int WIFI_AP_STATE_DISABLED = 11;
+    public static final int WIFI_AP_STATE_ENABLING = 12;
+    public static final int WIFI_AP_STATE_ENABLED = 13;
+    public static final int WIFI_AP_STATE_FAILED = 14;
+
+    private static final String WIFI_CONNECTION_CHANGED_INTENT_FILTER = "android.net.wifi.STATE_CHANGE";
+
     private WifiManager wifiManager;
     private ConnectivityManager connManager;
+    private JSONObject adapterInfos;
+    private WifiChangeListener wifiChangeListener;
+    private static WifiUtils currentInstance;
+    private NetworkInfo.State lastNetworkState = NetworkInfo.State.UNKNOWN;
+    private String currentWifiStateText = "UNKNOWN";
 
-    private static enum WIFI_AP_STATE {
-        WIFI_AP_STATE_DISABLING,
-        WIFI_AP_STATE_DISABLED,
-        WIFI_AP_STATE_ENABLING,
-        WIFI_AP_STATE_ENABLED,
-        WIFI_AP_STATE_FAILED
+    public WifiUtils() {
+        super();
+        WifiUtils.currentInstance = this;
+    }
+
+    public static WifiUtils getInstance(){
+        return WifiUtils.currentInstance;
+    }
+
+    private BroadcastReceiver wifiConnectionChangedReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+            Bundle extras = intent.getExtras();
+            NetworkInfo info = extras.getParcelable(WifiManager.EXTRA_NETWORK_INFO);
+
+            if (info != null) {
+                NetworkInfo.State newNetworkState = info.getState();
+                if (newNetworkState != lastNetworkState) {
+                    currentWifiStateText = newNetworkState.toString();
+                    Log.d(TAG, currentWifiStateText);
+                    if (newNetworkState == NetworkInfo.State.CONNECTED) {
+                        notifyWifiChangeListener();
+                    }
+                    lastNetworkState = newNetworkState;
+                }
+            }
+        }
+    };
+
+    private BroadcastReceiver wifiApChangedReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Bundle extras = intent.getExtras();
+            int apState = extras.getInt(EXTRA_WIFI_AP_STATE);
+            switch (apState) {
+                case WIFI_AP_STATE_DISABLED:
+                    currentWifiStateText = "WIFI_AP_STATE_DISABLED";
+                    break;
+                case WIFI_AP_STATE_DISABLING:
+                    currentWifiStateText = "WIFI_AP_STATE_DISABLING";
+                    break;
+                case WIFI_AP_STATE_ENABLED:
+                    currentWifiStateText = "WIFI_AP_STATE_ENABLED";
+                    break;
+                case WIFI_AP_STATE_ENABLING:
+                    currentWifiStateText = "WIFI_AP_STATE_ENABLING";
+                    break;
+                case WIFI_AP_STATE_FAILED:
+                    currentWifiStateText = "WIFI_AP_STATE_FAILED";
+                    break;
+                default:
+                    currentWifiStateText = "WIFI_AP_STATE_UNKNOWN";
+                    break;
+            }
+
+            Log.d(TAG, currentWifiStateText);
+
+            if (apState == WIFI_AP_STATE_ENABLED) {
+                notifyWifiChangeListener();
+            }
+        }
+    };
+
+    public void notifyWifiChangeListener() {
+        try {
+            adapterInfos = getAdapterInfos();
+            Log.d(TAG, adapterInfos.toString());
+        } catch (SocketException e) {
+            e.printStackTrace();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+        if (adapterInfos == null) {
+            adapterInfos = new JSONObject();
+        }
+        if (wifiChangeListener != null) {
+            wifiChangeListener.onWifiChanged(adapterInfos);
+        }
+    }
+
+    public void setWifiChangeListener(WifiChangeListener wifiChangeListener) {
+        this.wifiChangeListener = wifiChangeListener;
+    }
+
+    public void initialize(CordovaInterface cordova, CordovaWebView webView) {
+        super.initialize(cordova, webView);
+        wifiManager = (WifiManager) cordova.getActivity().getSystemService(Context.WIFI_SERVICE);
+        connManager = (ConnectivityManager) cordova.getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        // http://stackoverflow.com/questions/15698790/broadcast-receiver-for-checking-internet-connection-in-android-app
+        cordova.getActivity().getApplicationContext().registerReceiver(wifiConnectionChangedReceiver, new IntentFilter(WIFI_CONNECTION_CHANGED_INTENT_FILTER));
+        cordova.getActivity().getApplicationContext().registerReceiver(wifiApChangedReceiver, new IntentFilter(WIFI_AP_CHANGED_INTENT_FILTER));
+    }
+
+    @Override
+    public void onDestroy() {
+        cordova.getActivity().getApplicationContext().unregisterReceiver(wifiConnectionChangedReceiver);
+        cordova.getActivity().getApplicationContext().unregisterReceiver(wifiApChangedReceiver);
     }
 
     private JSONObject getErrorFromException(Exception e) {
@@ -59,26 +172,14 @@ public class WifiUtils extends CordovaPlugin {
         return error;
     }
 
-    public void initialize(CordovaInterface cordova, CordovaWebView webView) {
-        super.initialize(cordova, webView);
-        Log.d(TAG, "initialize");
-        wifiManager = (WifiManager) cordova.getActivity().getSystemService(Context.WIFI_SERVICE);
-        connManager = (ConnectivityManager) cordova.getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
-    }
-
-    /*the following method is for getting the wifi hotspot state*/
-    private WIFI_AP_STATE getWifiApState() {
+     /* the following method is for getting the wifi hotspot state */
+    private int getWifiApState() {
         try {
             Method method = wifiManager.getClass().getMethod("getWifiApState");
-            int tmp = ((Integer) method.invoke(wifiManager));
-            // Fix for Android 4
-            if (tmp > 10) {
-                tmp = tmp - 10;
-            }
-            return WIFI_AP_STATE.class.getEnumConstants()[tmp];
+            return ((Integer) method.invoke(wifiManager));
         } catch (Exception e) {
             Log.e(TAG, e.getMessage());
-            return WIFI_AP_STATE.WIFI_AP_STATE_FAILED;
+            return WIFI_AP_STATE_FAILED;
         }
     }
 
@@ -89,7 +190,7 @@ public class WifiUtils extends CordovaPlugin {
      * @see #getWifiApState()
      */
     private boolean isWifiApEnabled() {
-        return (getWifiApState() == WIFI_AP_STATE.WIFI_AP_STATE_ENABLED);
+        return (getWifiApState() == WIFI_AP_STATE_ENABLED);
     }
 
     private InetAddress getNetIdAddress(byte[] ipAddress, byte[] subnetMask) throws UnknownHostException {
@@ -222,7 +323,8 @@ public class WifiUtils extends CordovaPlugin {
             cordova.getThreadPool().execute(new Runnable() {
                 public void run() {
                     try {
-                        callbackContext.success(getAdapterInfos());
+                        adapterInfos = getAdapterInfos();
+                        callbackContext.success(adapterInfos);
                     } catch (Exception e) {
                         Log.e(TAG, e.toString(), e);
                         callbackContext.error(getErrorFromException(e));
