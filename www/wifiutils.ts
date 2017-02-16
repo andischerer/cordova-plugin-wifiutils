@@ -42,14 +42,14 @@ class WifiUtils {
     successCallback: () => void,
     errorCallback: (error: string) => void
   ): void {
-    cordova.exec(successCallback, errorCallback, 'WifiUtils', 'start', []);
+    cordova.exec(successCallback, errorCallback, 'WifiUtils', 'init', []);
   }
 
   getInfos(
     successCallback: (wifiInfos: IWifiInfos) => void,
     errorCallback: (error: string) => void
   ): void {
-    cordova.exec(successCallback, errorCallback, 'WifiUtils', 'start', []);
+    cordova.exec(successCallback, errorCallback, 'WifiUtils', 'getInfos', []);
   }
 }
 
