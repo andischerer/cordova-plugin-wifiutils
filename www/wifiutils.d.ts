@@ -36,4 +36,5 @@ declare class WifiUtils {
     getInfos(successCallback: (wifiInfos: IWifiInfos) => void, errorCallback: (error: string) => void): void;
     aquireWifiLock(successCallback: () => void, errorCallback: (error: string) => void): void;
     releaseWifiLock(successCallback: () => void, errorCallback: (error: string) => void): void;
+    onConnectionStateChange(successCallback: (connectionsState: wifiConnectionState | wifiApState) => void, errorCallback: (error: string) => void): void;
 }

@@ -65,6 +65,13 @@ class WifiUtils {
   ): void {
     cordova.exec(successCallback, errorCallback, 'WifiUtils', 'releaseWifiLock', []);
   }
+
+  onConnectionStateChange(
+    successCallback: (connectionsState: wifiConnectionState | wifiApState) => void,
+    errorCallback: (error: string) => void
+  ): void {
+    cordova.exec(successCallback, errorCallback, 'WifiUtils', 'onConnectionStateChange', []);
+  }
 }
 
 module.exports = new WifiUtils();

@@ -13,6 +13,9 @@ var WifiUtils = (function () {
     WifiUtils.prototype.releaseWifiLock = function (successCallback, errorCallback) {
         cordova.exec(successCallback, errorCallback, 'WifiUtils', 'releaseWifiLock', []);
     };
+    WifiUtils.prototype.onConnectionStateChange = function (successCallback, errorCallback) {
+        cordova.exec(successCallback, errorCallback, 'WifiUtils', 'onConnectionStateChange', []);
+    };
     return WifiUtils;
 }());
 module.exports = new WifiUtils();

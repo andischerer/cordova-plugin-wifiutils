@@ -18,6 +18,7 @@ import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaInterface;
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CordovaWebView;
+import org.apache.cordova.PluginResult;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -47,6 +48,7 @@ public class WifiUtils extends CordovaPlugin {
 
     private WifiManager wifiManager;
     private WifiManager.WifiLock wifiLock;
+    private CallbackContext connectionStateChangeCallback = null;
     private ConnectivityManager connManager;
     private JSONObject adapterInfos;
     private WifiChangeListener wifiChangeListener;
@@ -74,7 +76,7 @@ public class WifiUtils extends CordovaPlugin {
                 NetworkInfo.State newNetworkState = info.getState();
                 if (newNetworkState != lastNetworkState) {
                     currentWifiStateText = newNetworkState.toString();
-                    Log.d(TAG, currentWifiStateText);
+                    sendConnectionStateChangeCallback(currentWifiStateText);
                     if (newNetworkState == NetworkInfo.State.CONNECTED) {
                         notifyWifiChangeListener();
                     }
@@ -110,7 +112,7 @@ public class WifiUtils extends CordovaPlugin {
                     break;
             }
 
-            Log.d(TAG, currentWifiStateText);
+            sendConnectionStateChangeCallback(currentWifiStateText);
 
             if (apState == WIFI_AP_STATE_ENABLED) {
                 notifyWifiChangeListener();
@@ -118,10 +120,18 @@ public class WifiUtils extends CordovaPlugin {
         }
     };
 
+    private void sendConnectionStateChangeCallback(String connectionState) {
+        Log.d(TAG, connectionState);
+        if (connectionStateChangeCallback != null) {
+            PluginResult result = new PluginResult(PluginResult.Status.OK, connectionState);
+            result.setKeepCallback(true);
+            connectionStateChangeCallback.sendPluginResult(result);
+        }
+    }
+
     private void notifyWifiChangeListener() {
         try {
             adapterInfos = getAdapterInfos();
-            Log.d(TAG, adapterInfos.toString());
         } catch (SocketException e) {
             e.printStackTrace();
         } catch (JSONException e) {
@@ -336,12 +346,14 @@ public class WifiUtils extends CordovaPlugin {
             return;
         }
         wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, TAG);
+        Log.d(TAG, "WifiLock: WIFI_MODE_FULL_HIGH_PERF aquired");
     }
 
     private void releaseLock() {
         if (wifiLock != null) {
             if (wifiLock.isHeld()){
                 wifiLock.release();
+                Log.d(TAG, "WifiLock: WIFI_MODE_FULL_HIGH_PERF released");
             }
             wifiLock = null;
         }
@@ -367,8 +379,12 @@ public class WifiUtils extends CordovaPlugin {
             });
         } else if (action.equals("aquireWifiLock")) {
             aquireLock();
+            callbackContext.success();
         } else if (action.equals("releaseWifiLock")) {
             releaseLock();
+            callbackContext.success();
+        } else if (action.equals("onConnectionStateChange")) {
+            connectionStateChangeCallback = callbackContext;
         } else {
             return false; // 'MethodNotFound'
         }
