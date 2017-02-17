@@ -224,7 +224,7 @@ public class WifiUtils extends CordovaPlugin {
         return InetAddress.getByAddress(bytes);
     }
 
-    private JSONObject getAdapterInfos() throws SocketException, JSONException, UnknownHostException {
+    public JSONObject getAdapterInfos() throws SocketException, JSONException, UnknownHostException {
         JSONObject adapterData = new JSONObject();
 
         boolean isWifiConnected = false;
